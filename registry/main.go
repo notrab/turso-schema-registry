@@ -16,12 +16,12 @@ import (
 type Migration struct {
 	Version     string    `json:"version"`
 	Description string    `json:"description"`
-	SQL         string    `json:"sql"`
+	SQLScript   string    `json:"sql"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
 type VerifyRequest struct {
-	Version string   `json:"version"`
+	Version string `json:"version"`
 }
 
 type VerifyResponse struct {
@@ -114,7 +114,7 @@ func (sr *SchemaRegistry) GetAllMigrations() ([]Migration, error) {
 	var migrations []Migration
 	for rows.Next() {
 		var m Migration
-		if err := rows.Scan(&m.Version, &m.Description, &m.SQL, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.Version, &m.Description, &m.SQLScript, &m.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan migration: %w", err)
 		}
 		migrations = append(migrations, m)
@@ -138,7 +138,7 @@ func (sr *SchemaRegistry) GetMigrations(fromVersion, toVersion string) ([]Migrat
 	var migrations []Migration
 	for rows.Next() {
 		var m Migration
-		if err := rows.Scan(&m.Version, &m.Description, &m.SQL, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.Version, &m.Description, &m.SQLScript, &m.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan migration: %w", err)
 		}
 		migrations = append(migrations, m)
@@ -164,7 +164,7 @@ func (sr *SchemaRegistry) RegisterMigration(m Migration) error {
 
 	_, err = sr.db.Exec(
 		"INSERT INTO migrations (version, description, sql_script, created_at) VALUES (?, ?, ?, ?)",
-		m.Version, m.Description, m.SQL, m.CreatedAt,
+		m.Version, m.Description, m.SQLScript, m.CreatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert migration: %w", err)
@@ -176,20 +176,16 @@ func (sr *SchemaRegistry) RegisterMigration(m Migration) error {
 func (sr *SchemaRegistry) handleRequests() http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/schema", sr.handleSchema)
-	mux.HandleFunc("/version", sr.handleVersion)
-	mux.HandleFunc("/migrations", sr.handleMigrations)
-	mux.HandleFunc("/verify", sr.handleVerify)
+	mux.HandleFunc("GET /schema", sr.handleSchema)
+	mux.HandleFunc("GET /version", sr.handleVersion)
+	mux.HandleFunc("GET /migrations", sr.handleGetMigrations)
+	mux.HandleFunc("POST /migrations", sr.handleRegisterMigration)
+	mux.HandleFunc("POST /verify", sr.handleVerify)
 
 	return mux
 }
 
 func (sr *SchemaRegistry) handleSchema(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	version, err := sr.GetCurrentVersion()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -211,13 +207,7 @@ func (sr *SchemaRegistry) handleSchema(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// handleVersion handles the /version endpoint (GET)
 func (sr *SchemaRegistry) handleVersion(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	version, err := sr.GetCurrentVersion()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -227,17 +217,6 @@ func (sr *SchemaRegistry) handleVersion(w http.ResponseWriter, r *http.Request) 
 	response := VersionResponse{CurrentVersion: version}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
-}
-
-func (sr *SchemaRegistry) handleMigrations(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		sr.handleGetMigrations(w, r)
-	case http.MethodPost:
-		sr.handleRegisterMigration(w, r)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
 }
 
 func (sr *SchemaRegistry) handleGetMigrations(w http.ResponseWriter, r *http.Request) {
@@ -272,7 +251,7 @@ func (sr *SchemaRegistry) handleRegisterMigration(w http.ResponseWriter, r *http
 		return
 	}
 
-	if migration.SQL == "" {
+	if migration.SQLScript == "" {
 		http.Error(w, "SQL is a required field", http.StatusBadRequest)
 		return
 	}
@@ -315,11 +294,6 @@ func (sr *SchemaRegistry) handleRegisterMigration(w http.ResponseWriter, r *http
 }
 
 func (sr *SchemaRegistry) handleVerify(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req VerifyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
