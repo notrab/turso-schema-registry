@@ -34,6 +34,16 @@ curl -X POST http://localhost:8080/migrations \
   }'
 ```
 
+Response:
+
+```json
+{
+  "status": "registered",
+  "version": "1.0.0",
+  "currentVersion": "1.0.0"
+}
+```
+
 If you omit the `version` field, the service will auto-increment the patch version:
 
 ```bash
@@ -50,8 +60,8 @@ Response:
 ```json
 {
   "status": "registered",
-  "version": "1.0.0",
-  "currentVersion": "1.0.0"
+  "version": "1.0.1",
+  "currentVersion": "1.0.1"
 }
 ```
 
