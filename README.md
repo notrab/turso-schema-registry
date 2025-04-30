@@ -8,7 +8,7 @@ The Schema Registry tracks database migration versions and their associated SQL 
 
 1. Register new migrations
 2. Fetch required migrations based on their current version
-3. Verify if they're up-to-date with the latest schema version
+3. Verify if they're at the latest schema version
 
 ## Typical Workflow
 
@@ -49,7 +49,7 @@ Response:
 
 ```json
 {
-  "status": "migration-registered",
+  "status": "registered",
   "version": "1.0.0",
   "currentVersion": "1.0.0"
 }
@@ -102,7 +102,7 @@ Response:
 
 ### 4. Verify Schema Version
 
-Verify if a client's schema is up-to-date by sending the current version:
+Verify if a client's schema is at the latest version by sending the current version:
 
 ```bash
 curl -X POST http://localhost:8080/verify \
@@ -130,11 +130,11 @@ Response if client needs to update:
 }
 ```
 
-Response if client is up-to-date:
+Response if client is at the latest version:
 
 ```json
 {
-  "status": "up-to-date",
+  "status": "latest",
   "currentVersion": "1.0.1",
   "clientVersion": "1.0.1"
 }
