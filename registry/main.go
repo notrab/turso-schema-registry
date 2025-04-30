@@ -20,6 +20,18 @@ type Migration struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+type MigrationStatus struct {
+	Registered     string
+	Latest         string
+	UpdateRequired string
+}
+
+var Status = MigrationStatus{
+	Registered:     "registered",
+	Latest:         "latest",
+	UpdateRequired: "update-required",
+}
+
 type VerifyRequest struct {
 	Version string `json:"version"`
 }
@@ -284,7 +296,7 @@ func (sr *SchemaRegistry) handleRegisterMigration(w http.ResponseWriter, r *http
 	currentVersion, _ := sr.GetCurrentVersion()
 
 	response := MigrationResponse{
-		Status:         "migration-registered",
+		Status:         Status.Registered,
 		Version:        migration.Version,
 		CurrentVersion: currentVersion,
 	}
@@ -313,7 +325,7 @@ func (sr *SchemaRegistry) handleVerify(w http.ResponseWriter, r *http.Request) {
 
 	if req.Version == currentVersion {
 		response := VerifyResponse{
-			Status:         "up-to-date",
+			Status:         Status.Latest,
 			CurrentVersion: currentVersion,
 			ClientVersion:  req.Version,
 		}
@@ -329,7 +341,7 @@ func (sr *SchemaRegistry) handleVerify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := VerifyResponse{
-		Status:             "update-required",
+		Status:             Status.UpdateRequired,
 		CurrentVersion:     currentVersion,
 		ClientVersion:      req.Version,
 		RequiredMigrations: migrations,
