@@ -22,7 +22,6 @@ type Migration struct {
 
 type VerifyRequest struct {
 	Version string   `json:"version"`
-	Tables  []string `json:"tables"`
 }
 
 type VerifyResponse struct {

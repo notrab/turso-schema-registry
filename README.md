@@ -102,18 +102,13 @@ Response:
 
 ### 4. Verify Schema Version
 
-There are two ways to verify if a client's schema is up-to-date:
-
-#### 4.1 Verify by Version Number
-
-If the client knows its current schema version:
+Verify if a client's schema is up-to-date by sending the current version:
 
 ```bash
 curl -X POST http://localhost:8080/verify \
   -H "Content-Type: application/json" \
   -d '{
-    "version": "1.0.0",
-    "tables": ["users"]
+    "version": "1.0.0"
   }'
 ```
 
@@ -144,46 +139,6 @@ Response if client is up-to-date:
   "clientVersion": "1.0.1"
 }
 ```
-
-#### 4.2 Verify by Schema Structure
-
-If the client doesn't know its version but can provide its current schema structure:
-
-```bash
-curl -X POST http://localhost:8080/verify/schema \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tables": {
-      "users": {
-        "columns": [
-          {"name": "id", "type": "INTEGER", "primary": true},
-          {"name": "name", "type": "TEXT"},
-          {"name": "email", "type": "TEXT"}
-        ]
-      }
-    }
-  }'
-```
-
-Response:
-
-```json
-{
-  "status": "update-required",
-  "currentVersion": "1.0.1",
-  "detectedVersion": "1.0.0",
-  "requiredMigrations": [
-    {
-      "version": "1.0.1",
-      "description": "Add timestamps to users",
-      "sql": "ALTER TABLE users ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;",
-      "created_at": "2025-04-30T12:05:00Z"
-    }
-  ]
-}
-```
-
-This method analyzes the provided schema structure and determines which version it matches, then provides the necessary migrations to bring it up to date.
 
 ### 5. Get Complete Schema Information
 
